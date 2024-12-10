@@ -1,13 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const MessageForm = () => {
+  const [isLoading, setIsLoading] = useState(true); // State for loading screen
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Simulate loading delay
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 5000); // 5 seconds delay
+    return () => clearTimeout(timer); // Cleanup timer on unmount
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,6 +38,16 @@ const MessageForm = () => {
     }
   };
 
+  // Loading screen
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <h1 className="text-3xl font-bold animate-pulse">Hello there!</h1>
+      </div>
+    );
+  }
+
+  // Confirmation screen after form submission
   if (isSubmitted) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -41,19 +58,20 @@ const MessageForm = () => {
     );
   }
 
+  // Form component
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-gray-950">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow-lg w-96 space-y-4"
+        className="bg-black p-8 rounded-lg shadow-2xl shadow-black w-96 space-y-4"
       >
-        <h1 className="text-2xl font-bold text-center">Leave a Message</h1>
+        <h1 className="text-2xl text-gray-400 font-bold text-center">Leave a Message</h1>
         <input
           type="text"
           placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full bg-black p-2 border-b focus:outline-none focus:ring-2 focus:ring-blue-400"
           required
         />
         <input
@@ -61,20 +79,20 @@ const MessageForm = () => {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full bg-black p-2 border-b focus:outline-none focus:ring-2 focus:ring-blue-400"
           required
         />
         <textarea
           placeholder="Message"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full bg-black p-2 border-b focus:outline-none focus:ring-2 focus:ring-blue-400"
           rows="5"
           required
         />
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
+          className="w-full bg-white text-black py-2 hover:bg-gray-500 rounded-full transition-colors"
         >
           Submit
         </button>
