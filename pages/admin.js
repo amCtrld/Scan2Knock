@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase"; // Import Firestore instance
-import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { useRouter } from "next/router";
-import { auth } from "../firebase"; // Import auth instance for authentication
-import { signOut } from "firebase/auth"; // Import signOut to log the user out
+import { auth } from "../firebase";
+import { signOut } from "firebase/auth";
+import emailjs from "emailjs-com";
 
 const AdminDashboard = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMessage, setSelectedMessage] = useState(null); // Track selected message
+  const [isReplying, setIsReplying] = useState(false); // Track reply modal state
+  const [reply, setReply] = useState(""); // Track reply content
   const router = useRouter();
 
   // Redirect if user is not logged in
   useEffect(() => {
     if (!auth.currentUser) {
-      router.push("/admin-login"); // Redirect to login if not authenticated
+      router.push("/admin-login");
     }
   }, [router]);
 
@@ -26,7 +30,7 @@ const AdminDashboard = () => {
         ...doc.data(),
       }));
       setMessages(fetchedMessages);
-      setLoading(false); // Set loading to false once messages are fetched
+      setLoading(false);
     };
     fetchMessages();
   }, []);
@@ -34,16 +38,46 @@ const AdminDashboard = () => {
   // Handle logout
   const handleLogout = () => {
     signOut(auth)
-      .then(() => {
-        router.push("/admin-login"); // Redirect to login page after logout
-      })
-      .catch((error) => {
-        console.error("Error logging out:", error);
-      });
+      .then(() => router.push("/admin-login"))
+      .catch((error) => console.error("Error logging out:", error));
   };
 
+  // Handle delete message
+  const handleDeleteMessage = async (messageId) => {
+    const messageRef = doc(db, "messages", messageId);
+    await deleteDoc(messageRef);
+    setMessages(messages.filter((msg) => msg.id !== messageId));
+  };
+
+  // Send Reply via EmailJS
+  const handleSendReply = () => {
+    const emailData = {
+      to_name: selectedMessage.name, // Client's name
+      reply: reply,                  // The reply message
+      to_email: selectedMessage.email, // Client's email address
+    };
+  
+    emailjs
+      .send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+        emailData,
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+      )
+      .then(() => {
+        alert("Reply sent successfully!");
+        setIsReplying(false); // Close the modal
+        setReply(""); // Reset the reply input
+      })
+      .catch((error) => {
+        console.error("Error sending reply:", error);
+        alert("Failed to send reply. Please try again.");
+      });
+  };
+  
+
   if (loading) {
-    return <div>Loading...</div>; // Loading state while fetching data
+    return <div>Loading...</div>;
   }
 
   return (
@@ -60,27 +94,71 @@ const AdminDashboard = () => {
           <h3 className="text-lg font-semibold mb-4">Submitted Messages</h3>
           <ul className="space-y-4">
             {messages.map((message) => (
-              <li key={message.id} className="bg-gray-100 p-4 rounded-md shadow-sm">
+              <li
+                key={message.id}
+                className="bg-gray-100 p-4 rounded-md shadow-sm cursor-pointer"
+                onClick={() => setSelectedMessage(message)}
+              >
                 <h4 className="text-lg font-semibold">{message.name}</h4>
-                <p className="text-sm text-gray-600">{message.email}</p>
-                <p className="text-gray-800 mt-2">{message.message}</p>
-                <button
-                  className="bg-blue-500 text-white py-1 px-4 rounded-md mt-2"
-                  onClick={() => alert("Replying to message")} // Implement reply functionality
-                >
-                  Reply
-                </button>
-                <button
-                  className="bg-red-500 text-white py-1 px-4 rounded-md mt-2 ml-2"
-                  onClick={() => alert("Deleting message")} // Implement delete functionality
-                >
-                  Delete
-                </button>
+                <p className="text-sm text-gray-600">
+                  {message.message.slice(0, 50)}{" "}
+                  {message.message.length > 50 && "..."}
+                </p>
+
+                {selectedMessage?.id === message.id && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-gray-800">{message.message}</p>
+                    <div className="flex space-x-4">
+                      <button
+                        className="bg-blue-500 text-white py-1 px-4 rounded-md"
+                        onClick={() => setIsReplying(true)} // Open reply modal
+                      >
+                        Reply
+                      </button>
+                      <button
+                        className="bg-red-500 text-white py-1 px-4 rounded-md"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         </div>
       </div>
+
+      {/* Reply Modal */}
+      {isReplying && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 className="text-lg font-semibold mb-4">Reply to {selectedMessage.name}</h3>
+            <textarea
+              className="w-full p-2 border rounded-md focus:outline-none"
+              rows="5"
+              placeholder="Type your reply here..."
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+            ></textarea>
+            <div className="flex justify-end mt-4 space-x-4">
+              <button
+                className="bg-gray-500 text-white py-1 px-4 rounded-md"
+                onClick={() => setIsReplying(false)} // Close the modal
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-blue-500 text-white py-1 px-4 rounded-md"
+                onClick={handleSendReply}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

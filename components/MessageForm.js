@@ -16,7 +16,7 @@ const MessageForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 5000); // 5 seconds delay
+    const timer = setTimeout(() => setIsLoading(false), 10000); // 5 seconds delay
     return () => clearTimeout(timer);
   }, []);
 

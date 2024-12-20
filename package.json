@@ -9,12 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "emailjs-com": "^3.2.0",
     "firebase": "^11.0.2",
     "framer-motion": "^11.13.5",
     "ldrs": "^1.0.2",
     "next": "15.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-icons": "^5.4.0",
     "react-tsparticles": "^2.12.2"
   },
   "devDependencies": {
